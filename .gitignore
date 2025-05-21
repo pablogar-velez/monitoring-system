@@ -1,0 +1,32 @@
+# Binarios de C/C++
+*.exe
+*.out
+*.o
+simulator
+simulator.exe
+
+# Archivos de VS Code
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+env/
+venv/
+.env
+.venv
+
+# Logs y temporales
+*.log
+*.tmp
+
+# Datos de usuario / OS
+.DS_Store
+Thumbs.db
+
+# Archivos de entorno (IDE, build)
+*.iml
+.idea/
+*.suo
+*.user
+*.sln
