@@ -4,28 +4,28 @@
 #include <chrono>
 
 int main() {
-    // Generador de números aleatorios basado en Mersenne Twister
-    std::random_device rd;  // Dispositivo de entropía para semilla
-    std::mt19937 gen(rd()); // Generador inicializado con la semilla
+    // Mersenne Twister-based random number generator
+    std::random_device rd;  // Entropy device for seeding
+    std::mt19937 gen(rd()); // Generator initialized with the seed
 
-    // Distribuciones uniformes para cada variable
-    std::uniform_int_distribution<> temp_dist(20, 29);   // Temperatura: 20–29 °C
-    std::uniform_int_distribution<> hum_dist(40, 59);    // Humedad: 40–59 %
-    std::uniform_int_distribution<> co2_dist(300, 699);  // CO₂: 300–699 ppm
+    // Uniform distributions for each variable
+    std::uniform_int_distribution<> temp_dist(-25, 55);   // Temperature: -25 to 55 °C
+    std::uniform_int_distribution<> hum_dist(0, 100);    // Humidity: 0 to 100%
+    std::uniform_int_distribution<> co2_dist(300, 2000);  // CO₂: 300 to 2000 ppm
 
     while (true) {
         int temp = temp_dist(gen);
         int hum  = hum_dist(gen);
         int co2  = co2_dist(gen);
 
-        // Imprime datos formateados
+        // Print formatted data
         std::cout << "T:" << temp 
                   << ",H:" << hum 
                   << ",CO2:" << co2 
                   << std::endl;
 
-        // Espera 1 segundo
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // Wait for 1 second
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     return 0;
