@@ -2,8 +2,6 @@
 *.exe
 *.out
 *.o
-simulator
-simulator.exe
 
 # Archivos de VS Code
 .vscode/
