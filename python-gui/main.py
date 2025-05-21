@@ -9,7 +9,7 @@ import pyqtgraph as pg
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
     QTextEdit, QLabel, QComboBox, QMessageBox, QFrame, QSizePolicy,
-    QTabWidget, QStyle, QLineEdit
+    QTabWidget, QStyle, QLineEdit, QFileDialog
 )
 from PyQt5.QtCore import pyqtSignal, QObject, Qt, QRectF
 from PyQt5.QtGui import QPainter, QColor, QFont, QLinearGradient, QPen, QPainterPath
@@ -282,7 +282,7 @@ class MonitoringApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Environmental Monitoring System")
-        self.setWindowIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
+        self.setWindowIcon(self.style().standardIcon(QStyle.SP_ComputerIcon))
         self.receiver = DataReceiver()
         self.receiver.data_received.connect(self.update_display)
         self.receiver.data_received.connect(self.update_graphs)
@@ -541,8 +541,30 @@ class MonitoringApp(QWidget):
         self.display.append("Monitoring stopped.")
 
     def update_display(self, data):
-        self.display.append(data)
-        self.data.append(data.split())
+        try:
+            # Ensure it's a string
+            data_str = data.strip() if isinstance(data, str) else str(data)
+            
+            # Verify correct format
+            if not all(x in data_str for x in ['T:', 'H:', 'CO2:']):
+                print(f"Incorrect format, data ignored: {data_str}")
+                return
+                
+            # Display in QTextEdit
+            self.display.append(data_str)
+            
+            # Ensure self.data exists
+            if not hasattr(self, 'data'):
+                self.data = []
+                
+            # Store raw data (exactly as received)
+            self.data.append(data_str)
+            
+            # Debug: show current state of self.data
+            print(f"Data added. Total records: {len(self.data)}")
+            
+        except Exception as e:
+            print(f"Error in update_display: {str(e)}")
 
     def update_graphs(self, data):
         try:
@@ -592,24 +614,62 @@ class MonitoringApp(QWidget):
 
     def save_data(self):
         try:
-            with open('sensor_data.csv', 'w', newline='') as file:
+            # Comprehensive self.data verification
+            if not hasattr(self, 'data') or not self.data:
+                QMessageBox.warning(self, "Error", "No data in memory to save")
+                print("Error: self.data doesn't exist or is empty")
+                return
+                
+            print(f"Attempting to save {len(self.data)} records...")
+            
+            filename = "sensor_data.csv"
+            saved_records = 0
+            
+            with open(filename, 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
-                writer.writerow(["Time", "Temperature (°C)", "Humidity (%)", "CO2 (ppm)"])
-                for i, row in enumerate(self.data):
-                    if len(row) == 3:
-                        writer.writerow([i] + row)
+                writer.writerow(["Temperature", "Humidity", "CO2"])
+                
+                for record in self.data:
+                    try:
+                        # Safe value extraction
+                        temp = record.split('T:')[1].split(',H:')[0]
+                        hum = record.split(',H:')[1].split(',CO2:')[0]
+                        co2 = record.split(',CO2:')[1].strip()
+                        
+                        # Additional validation
+                        if not (temp.replace('.', '').isdigit() and 
+                                hum.replace('.', '').isdigit() and 
+                                co2.isdigit()):
+                            raise ValueError("Non-numeric values")
+                        
+                        # Write to CSV
+                        writer.writerow([temp, hum, co2])
+                        saved_records += 1
+                        
+                        # Debug per record
+                        print(f"Saved: T={temp}, H={hum}, CO2={co2}")
+                        
+                    except Exception as e:
+                        print(f"Error processing record {record}: {str(e)}")
+                        continue
+
+            # Final result
+            msg = f"File saved: {filename}\nRecords: {saved_records}/{len(self.data)}"
+            print(msg)
+            QMessageBox.information(self, "Result", msg)
             
-            # Show confirmation message
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Data saved successfully!")
-            msg.setWindowTitle("Success")
-            msg.setStandardButtons(QMessageBox.Ok)
-            msg.exec_()
-            
-            self.display.append("Data saved to sensor_data.csv")
+            # Additional verification: read the newly created file
+            try:
+                with open(filename, 'r') as f:
+                    print("File content:")
+                    print(f.read())
+            except Exception as e:
+                print(f"Couldn't verify file: {str(e)}")
+                
         except Exception as e:
-            self.display.append(f"Error saving data: {e}")
+            error_msg = f"Save error: {str(e)}"
+            print(error_msg)
+            QMessageBox.critical(self, "Critical Error", error_msg)
 
     def closeEvent(self, event):
         self.save_data()
